@@ -70,7 +70,7 @@ def summarize_ranked_stories(
                 "content": (
                     "Write an English briefing as JSON with trend_summary and stories. "
                     "trend_summary: 2-3 sentences synthesizing at most three financial themes. "
-                    "Each story must have id, title, summary, why_it_matters and market_impact. "
+                    "Return exactly one story for every supplied id; do not omit or duplicate stories. Each story must have id, title, summary, why_it_matters and market_impact. "
                     "title: factual English headline preserving key actors and figures. "
                     "summary: 1-2 factual sentences, only one for headline_only evidence. "
                     "why_it_matters: one distinct sentence about affected parties, transmission mechanism or what to watch. "
@@ -83,9 +83,14 @@ def summarize_ranked_stories(
     data = json.loads(response.choices[0].message.content or "{}")
     story_by_id = {index: story for index, story in enumerate(stories)}
     brief_stories: list[BriefStory] = []
+    seen_ids = set()
     for item in data.get("stories", []):
         try:
-            story = story_by_id[int(item["id"])]
+            story_id = int(item["id"])
+            story = story_by_id[story_id]
+            if story_id in seen_ids:
+                continue
+            seen_ids.add(story_id)
         except (KeyError, TypeError, ValueError):
             continue
         brief_stories.append(
@@ -101,6 +106,9 @@ def summarize_ranked_stories(
                 market_impact=str(item.get("market_impact") or "Analysis unavailable.").strip(),
             )
         )
+    for story_id, story in story_by_id.items():
+        if story_id not in seen_ids:
+            brief_stories.append(BriefStory(story.title, story.url, story.source, story.importance_score, story.title, story.reason, story.published_at, story.time_kind, "AI analysis unavailable for this story."))
     return BriefContent(
         trend_summary=str(data.get("trend_summary", "")).strip(),
         stories=brief_stories,

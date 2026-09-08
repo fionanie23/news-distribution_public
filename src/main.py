@@ -33,7 +33,7 @@ def main() -> None:
     today = datetime.now(ZoneInfo("America/Los_Angeles")).date()
     candidates = collect_news(hours=args.hours)
     filtered = filter_and_deduplicate(candidates)
-    ranked = rank_candidates(filtered, max_stories=6)
+    ranked = rank_candidates(filtered, max_stories=10)
     brief = summarize_ranked_stories(ranked)
     vix = get_vix_snapshot()
     subject = render_subject(today)

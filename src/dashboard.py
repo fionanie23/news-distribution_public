@@ -109,8 +109,7 @@ def collect_dashboard():
 
 
 def render_dashboard(groups):
-    parts=['<section><h2>Market &amp; macro dashboard</h2><p>Latest available observations, not live quotes. Market trends compare completed daily sessions; monthly/quarterly data repeat until the next release and may be revised. Dates below are observation periods, not release dates. ETF proxies are not the underlying indexes; adjusted price changes can include distributions. Positive changes do not necessarily mean improving conditions.</p>']
-    parts.append(render_watch(groups))
+    parts=['<section><h2>Market &amp; macro dashboard</h2>', render_watch(groups)]
     for title,rows in groups:
         parts.append('<h3>'+escape(title)+'</h3><table style="width:100%;border-collapse:collapse;font-size:13px"><tr><th align="left">Indicator / as of</th><th align="left">Latest / trend</th></tr>')
         for r in rows:
@@ -122,6 +121,10 @@ def render_dashboard(groups):
 
 # Editorial screening levels, not statistical significance or trading signals.
 WATCH_RULES = {
+    '^DJI': (1.0, ''),
+    '^HSI': (2.0, ''),
+    '^N225': (1.5, ''),
+    '^FTSE': (1.0, ''),
     '^GSPC': (1.0, 'Broad equity repricing can affect wealth and risk appetite; check whether credit and sectors confirm the move.'),
     '^IXIC': (1.5, 'Growth shares are sensitive to earnings expectations and discount rates; compare Treasury yields before attributing the move.'),
     '^VIX': (10.0, 'Higher VIX implies more expected equity volatility and pricier options; lower VIX implies less. It does not predict market direction.'),
@@ -135,22 +138,39 @@ WATCH_RULES = {
 
 
 def render_watch(groups):
-    candidates = []
-    for _, rows in groups:
-        for row in rows:
-            if row.symbol not in WATCH_RULES or row.change is None or 'stale' in row.asof:
-                continue
-            threshold, mechanism = WATCH_RULES[row.symbol]
-            if abs(row.change) >= threshold:
-                candidates.append((abs(row.change) / threshold, row, mechanism, threshold))
-    candidates.sort(key=lambda item: item[0], reverse=True)
-    parts = ['<h3>Watch today</h3><p>Up to three moves passing editorial screens (not forecasts). These are potential transmission channels, not verified explanations of the moves.</p>']
-    if not candidates:
-        parts.append('<p>No available, non-stale observations crossed the screening levels. Missing data do not imply calm markets.</p>')
-    else:
-        parts.append('<ul>')
-        for _, row, mechanism, threshold in candidates[:3]:
-            unit = 'bp' if row.symbol in ('DGS2', 'DGS10', 'BAMLH0A0HYM2') else '%'
-            parts.append(f'<li style="margin-bottom:12px"><strong>{escape(row.name)}</strong>: {escape(row.trend.split(";")[0])} (as of {escape(row.asof)}). {escape(mechanism)} <small>Screen: absolute change ≥ {threshold:g} {unit}.</small></li>')
-        parts.append('</ul>')
+    rows = [r for _, group in groups for r in group
+            if r.symbol in WATCH_RULES and r.change is not None and 'stale' not in r.asof]
+    if not rows:
+        return '<h3>Today’s index brief</h3><p>Not enough recent verified index data to identify the main moves today. Tables show observation periods, not release dates.</p>'
+    ranked = sorted(rows, key=lambda r: abs(r.change) / WATCH_RULES[r.symbol][0], reverse=True)
+    big = [r for r in ranked if abs(r.change) >= WATCH_RULES[r.symbol][0]]
+    leaders = (big or ranked)[:3]
+    sentences = []
+    for r in leaders:
+        unit = 'bp' if r.symbol in ('DGS2','DGS10','BAMLH0A0HYM2') else '%'
+        direction = 'rose' if r.change > 0 else 'fell' if r.change < 0 else 'was unchanged'
+        movement = f'{direction} {abs(r.change):.2f} {unit}' if r.change else direction
+        sentences.append(f'{escape(r.name)} {movement} to {escape(r.value)} (as of {escape(r.asof)}).')
+    prefix = '' if big else 'No tracked move crossed the large-move screens; the largest relative moves were: '
+    parts = ['<h3>Today’s index brief</h3><p>' + prefix + ' '.join(sentences) + '</p><h3>Indexes to watch today</h3><ul>']
+    for r in leaders:
+        up = r.change > 0
+        if not r.change:
+            impact = 'No change in the latest observation; watch for a new move in the next session.'
+        elif r.symbol in ('DGS2','DGS10'):
+            impact = ('The yield rise pressures existing bond prices and may weigh on rate-sensitive stocks; watch whether it persists.' if up else 'The yield decline supports existing bond prices and eases equity discount rates; watch whether growth concerns offset that support.')
+        elif r.symbol == '^VIX':
+            impact = ('The volatility increase signals costlier equity protection; watch whether stock weakness and wider credit spreads confirm stress.' if up else 'The volatility decline signals cheaper equity protection; watch whether equity gains broaden before inferring stronger risk appetite.')
+        elif r.symbol == 'DX-Y.NYB':
+            impact = ('Dollar strength may pressure US exporters and USD borrowers; watch Treasury rate differentials and EUR/USD.' if up else 'Dollar weakness may ease pressure on USD borrowers and aid US exporters; watch relative yields and EUR/USD for confirmation.')
+        elif r.symbol == 'CL=F':
+            impact = ('Higher oil can benefit producers but raise transport costs and inflation pressure; watch energy stocks and inflation expectations.' if up else 'Lower oil can ease input costs but pressure producers; watch whether energy stocks signal demand concerns.')
+        elif r.symbol == 'GC=F':
+            impact = ('Gold gained; watch real yields and USD to distinguish rate-driven strength from haven demand.' if up else 'Gold declined; watch real yields and USD before interpreting this as reduced haven demand.')
+        elif r.symbol == 'BAMLH0A0HYM2':
+            impact = ('Wider high-yield spreads indicate tighter risky-credit conditions; watch equity weakness and refinancing exposure.' if up else 'Tighter high-yield spreads indicate easier risky-credit conditions; watch whether equities confirm stronger risk appetite.')
+        else:
+            impact = ('The equity gain suggests stronger risk appetite; watch whether sectors broaden and credit spreads remain contained.' if up else 'The equity decline signals weaker risk appetite; watch VIX and credit spreads for confirmation, plus yields for valuation pressure.')
+        parts.append(f'<li style="margin-bottom:10px"><strong>{escape(r.name)}</strong> — {escape(impact)}</li>')
+    parts.append('</ul><p style="font-size:12px;color:#6b7280">Changes compare latest available observations, not live trading. Implications are conditional, not confirmed causes. Watch priority uses move size relative to editorial screens; tables show observation periods and source links.</p>')
     return ''.join(parts)

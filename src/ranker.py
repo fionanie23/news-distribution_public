@@ -441,7 +441,7 @@ def rank_candidates(
                 "content": (
                     "Score and rank these candidate stories. Return JSON with key 'stories'. "
                     "Each story must include id, importance_score from 1 to 10, and reason in English. "
-                    f"Return at most {max_stories} stories and omit weak stories.\n\n"
+                    f"Rank all eligible distinct finance stories in the supplied pool, up to {len(compact_candidates)}, so we can select {max_stories} after deduplication. Exclude unreliable or irrelevant items.\n\n"
                     f"{json.dumps(compact_candidates, ensure_ascii=False)}"
                 ),
             },
