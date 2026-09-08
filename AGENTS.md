@@ -18,11 +18,10 @@ Never add filler content.
 
 Prioritize:
 
-* AI and technology
-* AI-related industries
-* Major China-US developments
-* Major Chinese company events
-* Major macroeconomic events
+* US and global finance and macroeconomic events
+* Central banks, bonds, currencies, commodities and banking
+* Consequential corporate earnings and transactions
+* Technology and geopolitics with material financial impact
 
 ## Exclusions
 
@@ -41,7 +40,7 @@ Unless the event is exceptionally important.
 
 Maximum 10 stories per day.
 
-All summaries should be written in Chinese.
+All summaries should be written in English.
 
 The entire briefing should be readable in under 5 minutes.
 

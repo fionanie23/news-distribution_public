@@ -4,12 +4,13 @@ import argparse
 import os
 from datetime import datetime
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 from dotenv import load_dotenv
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Generate and send a daily Chinese news briefing.")
+    parser = argparse.ArgumentParser(description="Generate and send a daily English US and global finance briefing.")
     parser.add_argument("--dry-run", action="store_true", help="Generate a local HTML preview without sending email.")
     parser.add_argument("--preview-path", default="daily_news_preview.html", help="Path for dry-run HTML preview.")
     parser.add_argument("--hours", type=int, default=24, help="Lookback window in hours.")
@@ -27,14 +28,16 @@ def main() -> None:
     from .summarizer import summarize_ranked_stories
     from .vix import get_vix_snapshot
 
-    today = datetime.now().date()
+    from .dashboard import collect_dashboard, render_dashboard
+
+    today = datetime.now(ZoneInfo("America/Los_Angeles")).date()
     candidates = collect_news(hours=args.hours)
     filtered = filter_and_deduplicate(candidates)
     ranked = rank_candidates(filtered, max_stories=10)
     brief = summarize_ranked_stories(ranked)
     vix = get_vix_snapshot()
     subject = render_subject(today)
-    html = render_email_html(today, vix, brief)
+    html = render_email_html(today, vix, brief, render_dashboard(collect_dashboard()))
 
     if args.dry_run:
         preview_path = Path(args.preview_path)

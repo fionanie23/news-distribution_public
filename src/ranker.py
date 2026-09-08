@@ -22,9 +22,9 @@ class RankedStory:
     summary_seed: str = ""
 
 
-SYSTEM_PROMPT = """You rank news for a high-signal daily Chinese briefing.
+SYSTEM_PROMPT = """You rank news for a high-signal daily English US and global finance briefing.
 Prefer omission over inclusion. Select only genuinely important developments from the last 24 hours.
-Prioritize AI and technology, AI-related industries, major global company events, stock markets and business, major macroeconomic events, and exceptionally important global events.
+Prioritize consequential US and global finance: central banks, inflation, jobs, equities, bonds, currencies, commodities, banking, earnings and acquisitions. Include technology only with substantial financial significance. Seek geographical and source diversity without filling quotas.
 Include China-US or other political developments only when they have a direct and substantial technology, economic, market, trade, or security impact. Do not let routine political coverage dominate the briefing.
 For company stories, favor consequential earnings surprises, guidance changes, major products, acquisitions, leadership changes, regulatory actions, production disruptions, or strategic shifts at widely followed companies in any country.
 Exclude minor feature updates, technical changelogs, routine announcements, entertainment, sports, and celebrity news unless historically significant.
@@ -34,82 +34,14 @@ Return strict JSON only."""
 OPENAI_CANDIDATE_LIMIT = 50
 
 HIGH_SIGNAL_TERMS = {
-    "nvidia": 10,
-    "rtx spark": 10,
-    "ai pc": 9,
-    "personal ai": 8,
-    "personal computer": 7,
-    "microsoft": 6,
-    "openai": 9,
-    "anthropic": 8,
-    "deepmind": 7,
-    "google": 5,
-    "meta": 5,
-    "xai": 5,
-    "artificial intelligence": 8,
-    "agentic ai": 8,
-    "ai agent": 8,
-    "semiconductor": 8,
-    "chip": 7,
-    "gpu": 7,
-    "accelerator": 6,
-    "hbm": 6,
-    "tsmc": 7,
-    "asml": 7,
-    "arm": 5,
-    "intel": 5,
-    "amd": 5,
-    "apple": 6,
-    "amazon": 5,
-    "berkshire": 5,
-    "boeing": 5,
-    "china": 4,
-    "costco": 4,
-    "consumer price index": 7,
-    "cpi": 7,
-    "earnings": 7,
-    "entity list": 6,
-    "export control": 6,
-    "guidance": 7,
-    "ipo": 4,
-    "market cap": 6,
-    "markets": 5,
-    "net income": 6,
-    "profit": 6,
-    "revenue": 6,
-    "salesforce": 4,
-    "sanction": 6,
-    "stock market": 6,
-    "stocks": 5,
-    "tariff": 6,
-    "tesla": 6,
-    "united states": 4,
-    "u.s.": 4,
-    "us-china": 6,
-    "china-us": 6,
-    "huawei": 7,
-    "alibaba": 6,
-    "tencent": 6,
-    "byd": 6,
-    "pdd": 5,
-    "jd.com": 5,
-    "xiaomi": 5,
-    "federal reserve": 8,
-    "fed": 6,
-    "fomc": 8,
-    "inflation": 7,
-    "interest rate": 7,
-    "rate cut": 8,
-    "rate hike": 8,
-    "treasury": 6,
-    "gdp": 6,
-    "recession": 7,
-    "payroll employment": 7,
-    "producer price index": 6,
-    "ppi": 6,
-    "unemployment rate": 7,
+    "federal reserve": 9, "central bank": 9, "inflation": 8, "interest rate": 8,
+    "treasury": 8, "bond": 7, "yield": 7, "gdp": 8, "unemployment": 8,
+    "payroll": 8, "cpi": 8, "ppi": 7, "earnings": 8, "guidance": 8,
+    "acquisition": 7, "merger": 7, "bank": 7, "credit": 7, "debt": 7,
+    "currency": 7, "oil": 7, "commodity": 7, "tariff": 7, "trade": 6,
+    "ecb": 8, "bank of japan": 8, "recession": 8, "stocks": 6,
+    "markets": 5, "revenue": 6, "profit": 6,
 }
-
 MAJOR_EVENT_TERMS = {
     "launch": 5,
     "unveil": 5,
@@ -507,7 +439,7 @@ def rank_candidates(
                 "role": "user",
                 "content": (
                     "Score and rank these candidate stories. Return JSON with key 'stories'. "
-                    "Each story must include id, importance_score from 1 to 10, and reason in Simplified Chinese. "
+                    "Each story must include id, importance_score from 1 to 10, and reason in English. "
                     f"Return at most {max_stories} stories and omit weak stories.\n\n"
                     f"{json.dumps(compact_candidates, ensure_ascii=False)}"
                 ),
@@ -679,7 +611,7 @@ def _heuristic_rank(candidates: list[NewsCandidate], max_stories: int) -> list[R
                 source=candidate.source,
                 published_at=candidate.published_at.isoformat(),
                 importance_score=min(score, 8),
-                reason="本地测试模式按关键词估算重要性；正式运行请配置 OpenAI API。",
+                reason="Preview ranking estimates significance from keywords; production uses AI.",
                 summary_seed=candidate.summary,
             )
         )

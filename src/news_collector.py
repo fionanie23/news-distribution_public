@@ -23,21 +23,21 @@ class NewsCandidate:
 
 
 GOOGLE_NEWS_QUERIES = [
-    "AI OR artificial intelligence when:1d",
-    "technology OR semiconductor OR chips when:1d",
-    "China US relations OR China United States when:1d",
-    "Chinese companies OR Alibaba OR Tencent OR BYD OR Huawei when:1d",
-    "stocks OR earnings OR markets OR IPO OR acquisition when:1d",
-    "major companies OR big tech OR revenue OR profit OR guidance when:1d",
-    "macroeconomy OR inflation OR Federal Reserve OR China economy when:1d",
+    "ADP employment OR ISM manufacturing OR ISM services OR FOMC OR PCE OR retail sales OR GDP OR PPI when:1d",
+    "US economy inflation employment Federal Reserve when:1d",
+    "stocks OR bonds OR Treasury OR earnings OR acquisition when:1d",
+    "global economy OR ECB OR Bank of Japan OR China economy when:1d",
+    "oil OR commodities OR currencies OR banking OR trade tariffs when:1d",
+    "site:axios.com (economy OR markets OR finance OR business) when:1d",
+    "site:wsj.com (economy OR markets OR finance OR earnings) when:1d",
+    "site:reuters.com (economy OR markets OR business) when:1d",
+    "site:ft.com (economy OR markets OR banking) when:1d",
+    "site:cnbc.com (economy OR markets OR earnings) when:1d",
 ]
 
 GDELT_QUERIES = [
-    "artificial intelligence",
-    "China United States",
-    "semiconductor",
-    "macroeconomy",
-    "geopolitics",
+    '"Federal Reserve"', '"global economy"', '"bond market"',
+    '"central bank"', '"corporate earnings"',
 ]
 
 FED_MONETARY_RSS_URL = "https://www.federalreserve.gov/feeds/press_monetary.xml"
@@ -78,8 +78,8 @@ def _collect_google_news(since: datetime, limit_per_query: int) -> list[NewsCand
             "https://news.google.com/rss/search?"
             f"q={encoded}&hl=en-US&gl=US&ceid=US:en"
         )
-        feed = feedparser.parse(url)
-        for entry in feed.entries[:limit_per_query]:
+        entries = _fetch_rss_entries(url)
+        for entry in entries[:limit_per_query]:
             published_at = _parse_feed_datetime(
                 getattr(entry, "published", None) or getattr(entry, "updated", None)
             )
