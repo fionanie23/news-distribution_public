@@ -1,6 +1,6 @@
 # US & Global Finance Brief
 
-English briefing adapted from howard0928/news-distribution_public. Selects at most 6 significant stories from the past 24 hours, with source links, financial implications and a dated VIX reading.
+English briefing adapted from howard0928/news-distribution_public. Selects 10 significant stories from the past 24 hours, with source links, financial implications and a dated VIX reading.
 
 Covers US and global macroeconomics, central banks, equities, bonds, currencies, commodities, banking, earnings and major transactions. Dedicated Google News RSS searches include Axios, WSJ, Reuters, FT and CNBC, alongside general finance searches, GDELT and filtered Fed/BLS releases. Source availability varies; no publisher quota or filler. Summaries use accessible headlines/snippets, without bypassing paywalls. Publisher links may require a subscription and Google News links may redirect.
 
@@ -23,7 +23,7 @@ Story times are preserved from source metadata through ranking and summarization
 
 Each story includes a short Market impact section covering relevant bond tenors/prices/yields, equity sectors, currency pairs and commodities. The prompt requires conditional implications to be distinguished from observed reactions. Analysis depends on accessible headlines/snippets and is not a full-article or real-time market study.
 
-The dashboard now includes VIX, dollar index and WTI oil futures. Watch today selects up to three moves exceeding explicit editorial screens in src/dashboard.py, ranked by magnitude relative to those screens. These thresholds are heuristic, not statistical significance or trading advice. Stale/missing data are excluded; each highlighted move includes an observation date and conditional economic transmission channel. The full dashboard retains the original broad coverage and is longer than a five-minute read; the news section is capped at six stories to control length.
+The dashboard now includes VIX, dollar index and WTI oil futures. The dashboard introduction summarizes actual signed changes, levels and dates for up to three leading moves. Indexes to watch today explains direction-specific implications and confirmation signals. It prioritizes moves exceeding explicit editorial screens in src/dashboard.py, ranked by magnitude relative to those screens. If no move crosses a screen, it labels the session accordingly and highlights the largest relative moves. These thresholds are heuristic, not statistical significance or trading advice. Stale/missing data are excluded; each highlighted move includes an observation date and conditional economic transmission channel. The full dashboard retains the original broad coverage and is longer than a five-minute read; the news section targets ten distinct eligible stories; fewer are shown if the source pool is insufficient.
 
 ## Upload and test
 
