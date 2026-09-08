@@ -20,6 +20,7 @@ class RankedStory:
     importance_score: int
     reason: str
     summary_seed: str = ""
+    time_kind: str = "published"
 
 
 SYSTEM_PROMPT = """You rank news for a high-signal daily English US and global finance briefing.
@@ -461,6 +462,7 @@ def rank_candidates(
                 url=candidate.url,
                 source=candidate.source,
                 published_at=candidate.published_at.isoformat(),
+                time_kind=candidate.time_kind,
                 importance_score=score,
                 reason=str(story.get("reason", "")),
                 summary_seed=candidate.summary,
@@ -610,6 +612,7 @@ def _heuristic_rank(candidates: list[NewsCandidate], max_stories: int) -> list[R
                 url=candidate.url,
                 source=candidate.source,
                 published_at=candidate.published_at.isoformat(),
+                time_kind=candidate.time_kind,
                 importance_score=min(score, 8),
                 reason="Preview ranking estimates significance from keywords; production uses AI.",
                 summary_seed=candidate.summary,

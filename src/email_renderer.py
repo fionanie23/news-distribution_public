@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, datetime
+from zoneinfo import ZoneInfo
 from html import escape
 from urllib.parse import urlparse
 
@@ -42,12 +43,12 @@ def render_email_html(brief_date: date, vix: VixSnapshot, content: BriefContent,
       <p style="font-size:16px;line-height:1.75;margin:0;color:#1f2937;">{escape(content.trend_summary)}</p>
     </section>
 
+    {dashboard_html}
+
     <section style="padding:24px 0 4px;">
       <h2 style="font-size:23px;line-height:1.25;margin:0 0 16px;font-weight:800;">Top stories</h2>
     {stories_html}
     </section>
-
-    {dashboard_html}
 
     <footer style="border-top:1px solid #d1d5db;margin:26px 0 0;padding:16px 0 4px;">
       <p style="font-size:13px;line-height:1.6;color:#6b7280;margin:0;">AI-generated briefing covering the past 24 hours. Sources may require a subscription.</p>
@@ -68,7 +69,7 @@ def _render_story(index: int, story) -> str:
       <article style="margin:0 0 18px;padding:18px 16px;border:1px solid #d1d5db;border-left:5px solid #2563eb;background:#fbfcfe;border-radius:6px;">
         <p style="font-size:13px;line-height:1.4;margin:0 0 8px;color:#6b7280;font-weight:700;text-transform:uppercase;">Story {index} / Importance {story.importance_score}/10</p>
         <h3 style="font-size:20px;line-height:1.35;margin:0 0 10px;font-weight:780;color:#111827;">{index}. {escape(story.title)}</h3>
-        <p style="font-size:14px;line-height:1.5;margin:0 0 14px;color:#6b7280;">Source: {source_label}</p>
+        <p style="font-size:14px;line-height:1.5;margin:0 0 14px;color:#6b7280;">Source: {source_label}<br>{escape(format_story_time(story.published_at, story.time_kind))}</p>
 
         <div style="margin:0 0 12px;">
           <p style="font-size:14px;line-height:1.4;margin:0 0 4px;color:#111827;font-weight:700;">What happened</p>
@@ -80,6 +81,7 @@ def _render_story(index: int, story) -> str:
           <p style="font-size:16px;line-height:1.72;margin:0;color:#1f2937;">{escape(story.why_it_matters)}</p>
         </div>
 
+        <div style="margin:0 0 14px;padding:12px;background:#eff6ff;border-radius:6px;"><strong>Market impact</strong><p style="line-height:1.6;margin:6px 0 0;">{escape(story.market_impact)}</p></div>
         <p style="font-size:15px;line-height:1.5;margin:0;"><a href="{escape(story.url)}" style="color:#2563eb;text-decoration:none;font-weight:700;">Read source ({link_label})</a></p>
       </article>"""
 
@@ -87,3 +89,17 @@ def _render_story(index: int, story) -> str:
 def _source_label(url: str) -> str:
     host = urlparse(url).netloc.replace("www.", "")
     return host or "Source link"
+
+
+def format_story_time(value: str, kind: str = "published") -> str:
+    labels = {"published": "Published (feed)", "updated": "Updated (feed)", "first_seen": "First seen by GDELT; publication time unavailable"}
+    label = labels.get(kind, "Source time")
+    try:
+        if len(value) == 10:
+            return label + ": " + date.fromisoformat(value).isoformat() + " (time unavailable)"
+        dt = datetime.fromisoformat(value.replace("Z", "+00:00"))
+        if dt.tzinfo is None:
+            return label + ": " + value + " (timezone unavailable)"
+        return label + ": " + dt.astimezone(ZoneInfo("America/Los_Angeles")).strftime("%b %d, %Y · %I:%M %p %Z")
+    except (ValueError, TypeError):
+        return label + ": unavailable"

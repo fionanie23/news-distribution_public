@@ -20,6 +20,7 @@ class NewsCandidate:
     source: str
     published_at: datetime
     summary: str = ""
+    time_kind: str = "published"
 
 
 GOOGLE_NEWS_QUERIES = [
@@ -93,6 +94,7 @@ def _collect_google_news(since: datetime, limit_per_query: int) -> list[NewsCand
                     source=source,
                     published_at=published_at,
                     summary=_clean_text(getattr(entry, "summary", "")),
+                    time_kind="published" if getattr(entry, "published", None) else "updated",
                 )
             )
     return items
@@ -133,6 +135,7 @@ def _collect_gdelt(since: datetime, limit_per_query: int) -> list[NewsCandidate]
                     source=article.get("domain") or "GDELT",
                     published_at=published_at,
                     summary="",
+                    time_kind="first_seen",
                 )
             )
     return items
@@ -198,6 +201,7 @@ def _rss_entry_to_candidate(entry, source: str) -> NewsCandidate | None:
         source=source,
         published_at=published_at,
         summary=_clean_text(getattr(entry, "summary", "")),
+                    time_kind="published" if getattr(entry, "published", None) else "updated",
     )
 
 

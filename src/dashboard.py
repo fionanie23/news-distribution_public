@@ -17,6 +17,7 @@ class Indicator:
     mode: str = 'price'
 
 MARKETS = [Indicator(n,'yahoo',s) for n,s in [
+ ('VIX','^VIX'),('US dollar index','DX-Y.NYB'),('WTI oil futures (USD/bbl)','CL=F'),
  ('S&P 500','^GSPC'),('Nasdaq Composite','^IXIC'),('Dow Jones','^DJI'),
  ('Hong Kong Hang Seng','^HSI'),('Japan Nikkei 225','^N225'),('UK FTSE 100','^FTSE'),
  ('Gold futures (USD/oz)','GC=F'),('EUR/USD (USD per EUR)','EURUSD=X'),
@@ -49,6 +50,8 @@ class Row:
     trend: str
     asof: str
     source: str
+    change: float | None = None
+    symbol: str = ""
 
 
 def summarize_observations(spec, observations, now=None):
@@ -78,7 +81,7 @@ def summarize_observations(spec, observations, now=None):
     age=(now-d).days
     threshold=100 if spec.symbol=='A191RL1Q225SBEA' else 70 if spec in MACRO else 7
     stamp=d.isoformat()+(' — stale' if age>threshold else '')
-    return Row(spec.name,value,trend,stamp,source)
+    return Row(spec.name,value,trend,stamp,source, ((v-previous)*100 if spec.mode=="rate" else (v/previous-1)*100) if previous else None, spec.symbol)
 
 
 def fetch_indicator(spec):
@@ -107,10 +110,47 @@ def collect_dashboard():
 
 def render_dashboard(groups):
     parts=['<section><h2>Market &amp; macro dashboard</h2><p>Latest available observations, not live quotes. Market trends compare completed daily sessions; monthly/quarterly data repeat until the next release and may be revised. Dates below are observation periods, not release dates. ETF proxies are not the underlying indexes; adjusted price changes can include distributions. Positive changes do not necessarily mean improving conditions.</p>']
+    parts.append(render_watch(groups))
     for title,rows in groups:
         parts.append('<h3>'+escape(title)+'</h3><table style="width:100%;border-collapse:collapse;font-size:13px"><tr><th align="left">Indicator / as of</th><th align="left">Latest / trend</th></tr>')
         for r in rows:
             parts.append(f'<tr><td style="padding:8px 4px;border-bottom:1px solid #ddd"><a href="{escape(r.source,quote=True)}">{escape(r.name)}</a><br>{escape(r.asof)}</td><td style="padding:8px 4px;border-bottom:1px solid #ddd">{escape(r.value)}<br>{escape(r.trend)}</td></tr>')
         parts.append('</table>')
     parts.append('<h3>Release watch: ADP, ISM and FOMC</h3><p>ADP and ISM numerical readings require verified release evidence; they are not inferred from other indicators. Follow the official releases below. Material new reports and Fed decisions are searched for inclusion in the news section.</p><ul><li><a href="https://adpemploymentreport.com/">ADP National Employment Report</a></li><li><a href="https://www.ismworld.org/supply-management-news-and-reports/reports/ism-pmi-reports/">ISM Manufacturing and Services PMI</a></li><li><a href="https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm">FOMC decisions, statements and meeting calendar</a></li></ul></section>')
+    return ''.join(parts)
+
+
+# Editorial screening levels, not statistical significance or trading signals.
+WATCH_RULES = {
+    '^GSPC': (1.0, 'Broad equity repricing can affect wealth and risk appetite; check whether credit and sectors confirm the move.'),
+    '^IXIC': (1.5, 'Growth shares are sensitive to earnings expectations and discount rates; compare Treasury yields before attributing the move.'),
+    '^VIX': (10.0, 'Higher VIX implies more expected equity volatility and pricier options; lower VIX implies less. It does not predict market direction.'),
+    'DGS2': (5.0, 'Higher short yields generally lower existing bond prices and can support USD, all else equal; lower yields reverse that channel. Check Fed expectations.'),
+    'DGS10': (7.0, 'Higher long yields generally pressure bond prices and rate-sensitive equities; lower yields ease discount rates but may reflect weaker growth.'),
+    'DX-Y.NYB': (0.5, 'A stronger dollar can pressure USD borrowers and US exporters; a weaker dollar can ease those pressures. Relative rates matter.'),
+    'CL=F': (2.0, 'Higher oil can support producers while raising transport costs and inflation pressure; lower oil reverses those channels, depending on the cause.'),
+    'GC=F': (1.5, 'Gold can react to real yields, USD and haven demand. Check those drivers before reading its move as a signal for stocks or FX.'),
+    'BAMLH0A0HYM2': (10.0, 'Wider credit spreads imply higher risky borrowing costs and can warn of equity stress; tighter spreads suggest easier credit conditions.'),
+}
+
+
+def render_watch(groups):
+    candidates = []
+    for _, rows in groups:
+        for row in rows:
+            if row.symbol not in WATCH_RULES or row.change is None or 'stale' in row.asof:
+                continue
+            threshold, mechanism = WATCH_RULES[row.symbol]
+            if abs(row.change) >= threshold:
+                candidates.append((abs(row.change) / threshold, row, mechanism, threshold))
+    candidates.sort(key=lambda item: item[0], reverse=True)
+    parts = ['<h3>Watch today</h3><p>Up to three moves passing editorial screens (not forecasts). These are potential transmission channels, not verified explanations of the moves.</p>']
+    if not candidates:
+        parts.append('<p>No available, non-stale observations crossed the screening levels. Missing data do not imply calm markets.</p>')
+    else:
+        parts.append('<ul>')
+        for _, row, mechanism, threshold in candidates[:3]:
+            unit = 'bp' if row.symbol in ('DGS2', 'DGS10', 'BAMLH0A0HYM2') else '%'
+            parts.append(f'<li style="margin-bottom:12px"><strong>{escape(row.name)}</strong>: {escape(row.trend.split(";")[0])} (as of {escape(row.asof)}). {escape(mechanism)} <small>Screen: absolute change ≥ {threshold:g} {unit}.</small></li>')
+        parts.append('</ul>')
     return ''.join(parts)
