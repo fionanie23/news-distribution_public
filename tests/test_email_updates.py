@@ -37,6 +37,24 @@ def test_watch_filters_stale_and_caps_at_three():
     rows=[Row('Yield','4%','+12 bp vs prior observation','2026-09-04','',12,'DGS10'),Row('Stale','1','+90%','2026-08-01 — stale','',90,'^VIX')]
     result=render_watch([('Markets',rows)])
     assert 'Yield' in result and 'Stale' not in result and 'bond prices' in result
-    assert 'No available' in render_watch([])
+    assert 'Not enough recent' in render_watch([])
     rows=[Row(s,'1','+30%','2026-09-04','',30,s) for s in ['^VIX','^GSPC','^IXIC','CL=F']]
     assert render_watch([('Markets',rows)]).count('<li ') == 3
+
+
+def test_index_brief_uses_actual_direction_magnitude_and_date():
+    r = Row('S&P 500','5,000.00','-2%','2026-09-07','',-2,'^GSPC')
+    result = render_watch([('Markets',[r])])
+    assert 'fell 2.00 % to 5,000.00' in result
+    assert 'as of 2026-09-07' in result and 'equity decline' in result
+    assert 'equity gain' not in result
+
+
+def test_summary_keeps_ten_when_model_omits_or_duplicates():
+    stories=[RankedStory(str(i),'https://example.com/'+str(i),'Source','2026-09-07T14:00:00Z',8,'Reason') for i in range(10)]
+    response=SimpleNamespace(choices=[SimpleNamespace(message=SimpleNamespace(content='{"stories":[{"id":0,"summary":"Fact"},{"id":0,"summary":"Duplicate"}]}'))])
+    with patch.dict('os.environ',{'OPENAI_API_KEY':'test-only'}), patch('src.summarizer.OpenAI') as client:
+        client.return_value.chat.completions.create.return_value=response
+        brief=summarize_ranked_stories(stories)
+    assert len(brief.stories)==10
+    assert len({s.url for s in brief.stories})==10
