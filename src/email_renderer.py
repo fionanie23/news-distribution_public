@@ -9,7 +9,7 @@ from .summarizer import BriefContent
 from .vix import VixSnapshot
 
 
-def render_email_html(brief_date: date, vix: VixSnapshot, content: BriefContent, dashboard_html: str = "") -> str:
+def render_email_html(brief_date: date, vix: VixSnapshot, content: BriefContent, dashboard_html: str = "", ideas_html: str = "") -> str:
     vix_value = f"{vix.value:.2f}" if vix.value is not None else "N/A"
     stories_html = "\n".join(
         _render_story(index, story) for index, story in enumerate(content.stories, start=1)
@@ -49,6 +49,8 @@ def render_email_html(brief_date: date, vix: VixSnapshot, content: BriefContent,
       <h2 style="font-size:23px;line-height:1.25;margin:0 0 16px;font-weight:800;">Top stories</h2>
     {stories_html}
     </section>
+
+    {ideas_html}
 
     <footer style="border-top:1px solid #d1d5db;margin:26px 0 0;padding:16px 0 4px;">
       <p style="font-size:13px;line-height:1.6;color:#6b7280;margin:0;">AI-generated briefing covering the past 24 hours. Sources may require a subscription.</p>

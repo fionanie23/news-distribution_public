@@ -29,6 +29,7 @@ def main() -> None:
     from .vix import get_vix_snapshot
 
     from .dashboard import collect_dashboard, render_dashboard
+    from .desk_ideas import generate_desk_ideas, render_desk_ideas
 
     today = datetime.now(ZoneInfo("America/Los_Angeles")).date()
     candidates = collect_news(hours=args.hours)
@@ -37,7 +38,9 @@ def main() -> None:
     brief = summarize_ranked_stories(ranked)
     vix = get_vix_snapshot()
     subject = render_subject(today)
-    html = render_email_html(today, vix, brief, render_dashboard(collect_dashboard()))
+    dashboard = collect_dashboard()
+    ideas, evidence = generate_desk_ideas(ranked, dashboard, vix)
+    html = render_email_html(today, vix, brief, render_dashboard(dashboard), render_desk_ideas(ideas, evidence))
 
     if args.dry_run:
         preview_path = Path(args.preview_path)
